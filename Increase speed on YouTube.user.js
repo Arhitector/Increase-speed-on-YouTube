@@ -13,8 +13,8 @@
 
 (function() {
     'use strict';
-    var speeds = [2, 2.5, 3, 5];
-    function createElement(speed) {
+    const speeds = [1, 2, 2.5, 3, 5, 10];
+    const createElement = (speed) => {
         var leftTextPos = (34 - speed.toString().replace('.','').length * 10)/2;
         var speedEl = document.createElement('button');
         speedEl.className = 'ytp-multicam-button ytp-button';
@@ -22,7 +22,7 @@
         speedEl.innerHTML = `<svg height="100%" version="1.1" viewBox="0 0 36 36" width="100%"><text x="${leftTextPos}" y="23" style="font-size:14px;text-decoration:underline;fill: #fff">${speed}x</text></svg>`;
         return speedEl;
     }
-    var menuSettings = document.getElementsByClassName("ytp-right-controls");
+    const menuSettings = document.getElementsByClassName("ytp-right-controls");
     speeds.map((speed) => {
         menuSettings[0].prepend(createElement(speed));
     });
