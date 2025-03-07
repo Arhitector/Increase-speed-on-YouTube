@@ -1,0 +1,31 @@
+{
+  "name": "Youtube speederman",
+  "version": "2.0.0",
+  "description": "increase video speed",
+  "manifest_version": 3,
+  "author": "Architector",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+       "./node_modules/@webcomponents/webcomponentsjs/webcomponents-bundle.js",
+       "config.js",
+       "content.js"
+    ]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "increase video speed"
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["styles.css"], 
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
