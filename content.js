@@ -125,13 +125,17 @@
 
   class DOMHelper {
     static insertAfter(referenceNode, newNode) {
-      referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
+      referenceNode.appendChild(newNode); 
     }
   }
 
   class SpeedControlsManager {
     constructor() {
       this.platformDetector = new PlatformDetector();
+      this.onMouseOver = null;
+      this.onMouseOut = null;
+      this.controls = null;
+      this.mutationObserver = null;
     }
 
     async initialize() {
@@ -142,7 +146,6 @@
         const platform = this.platformDetector.detectPlatform();
 
         if (platform) {
-          console.log(`Detected platform: ${platform.name}`);
           this.attachSpeedControls(platform, speeds);
         } else {
           console.log("No supported platform detected");
@@ -154,15 +157,51 @@
 
     attachSpeedControls(platform, speeds) {
       const { containerSelector, videoSelector, name } = platform;
-
+      
       DOMObserver.waitForElement(containerSelector, (controls) => {
         const speedControls = document.createElement("speed-controls");
         speedControls.speeds = speeds;
         speedControls.videoSelector = videoSelector;
 
         DOMHelper.insertAfter(controls, speedControls);
-        console.log(`Speed controls attached to ${name}`);
+
+        let isOverVideo = false;
+        const updateVisibility = () => {
+          speedControls.style.opacity = isOverVideo ? "1" : "0";
+        };
+
+        this.onMouseOver = () => {
+          isOverVideo = true;
+          updateVisibility();
+        };
+        this.onMouseOut = () => {
+          isOverVideo = false;
+          updateVisibility();
+        };
+
+        controls.addEventListener("mouseover", this.onMouseOver);
+        controls.addEventListener("mouseout", this.onMouseOut);
+
+        this.mutationObserver = new MutationObserver(() => {
+          if (!document.contains(controls)) {
+            this.removeListeners();
+          }
+        });
+        this.mutationObserver.observe(document, { childList: true, subtree: true });
       });
+    }
+    removeListeners() {
+      if (this.controls && this.onMouseOver && this.onMouseOut) {
+        this.controls.removeEventListener("mouseover", this.onMouseOver);
+        this.controls.removeEventListener("mouseout", this.onMouseOut);
+        this.onMouseOver = null;
+        this.onMouseOut = null;
+        console.log("Listeners removed");
+      }
+      if (this.mutationObserver) {
+        this.mutationObserver.disconnect();
+        this.mutationObserver = null;
+      }
     }
   }
 
