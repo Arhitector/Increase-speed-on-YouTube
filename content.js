@@ -2,6 +2,7 @@
   "use strict";
 
   const DEFAULT_SPEEDS = [1, 1.5, 2, 2.5, 3, 3.25, 3.5, 4, 6, 8];
+  const HIDE_DELAY = 3000;
 
   class SpeedControls extends HTMLElement {
     constructor() {
@@ -111,8 +112,8 @@
 
     detectPlatform() {
       for (const platform of this.platforms) {
-        const { videoSelector } = platform;
-        const videoElem = document.querySelector(videoSelector);
+        const { containerSelector } = platform;
+        const videoElem = document.querySelector(containerSelector);
 
         if (videoElem) {
           return platform;
@@ -134,8 +135,10 @@
       this.platformDetector = new PlatformDetector();
       this.onMouseOver = null;
       this.onMouseOut = null;
+      this.onMouseMove = null;
       this.controls = null;
       this.mutationObserver = null;
+      this.hideTimer = null;
     }
 
     async initialize() {
@@ -146,6 +149,7 @@
         const platform = this.platformDetector.detectPlatform();
 
         if (platform) {
+          console.info(`Platform detected ${platform?.name}`);
           this.attachSpeedControls(platform, speeds);
         } else {
           console.log("No supported platform detected");
@@ -170,17 +174,48 @@
           speedControls.style.opacity = isOverVideo ? "1" : "0";
         };
 
+        const resetHideTimer = () => {
+          if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+          }
+          this.hideTimer = setTimeout(() => {
+            if (isOverVideo) {
+              isOverVideo = false;
+              updateVisibility();
+            }
+          }, HIDE_DELAY);
+        };
+
         this.onMouseOver = () => {
           isOverVideo = true;
           updateVisibility();
+          resetHideTimer();
         };
+        
         this.onMouseOut = () => {
           isOverVideo = false;
           updateVisibility();
+          if (this.hideTimer) {
+            clearTimeout(this.hideTimer);
+            this.hideTimer = null;
+          }
+        };
+
+        this.onMouseMove = () => {
+          if (isOverVideo) {
+            resetHideTimer();
+          } else {
+            isOverVideo = true;
+            updateVisibility();
+            resetHideTimer();
+          }
         };
 
         controls.addEventListener("mouseover", this.onMouseOver);
         controls.addEventListener("mouseout", this.onMouseOut);
+        controls.addEventListener("mousemove", this.onMouseMove);
+
+        this.controls = controls;
 
         this.mutationObserver = new MutationObserver(() => {
           if (!document.contains(controls)) {
@@ -191,12 +226,18 @@
       });
     }
     removeListeners() {
-      if (this.controls && this.onMouseOver && this.onMouseOut) {
+      if (this.controls && this.onMouseOver && this.onMouseOut && this.onMouseMove) {
         this.controls.removeEventListener("mouseover", this.onMouseOver);
         this.controls.removeEventListener("mouseout", this.onMouseOut);
+        this.controls.removeEventListener("mousemove", this.onMouseMove);
         this.onMouseOver = null;
         this.onMouseOut = null;
+        this.onMouseMove = null;
         console.log("Listeners removed");
+      }
+      if (this.hideTimer) {
+        clearTimeout(this.hideTimer);
+        this.hideTimer = null;
       }
       if (this.mutationObserver) {
         this.mutationObserver.disconnect();
