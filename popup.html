@@ -1,93 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Video Speed Controller</title>
-  <style>
-    body {
-      width: 300px;
-      padding: 15px;
-      font-family: Arial, sans-serif;
-    }
-    h1 {
-      font-size: 16px;
-      margin-bottom: 15px;
-    }
-    .speeds-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 15px;
-    }
-    .speed-chip {
-      background: #f0f0f0;
-      padding: 5px 10px;
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-    }
-    .remove-speed {
-      margin-left: 5px;
-      cursor: pointer;
-      color: #999;
-      font-weight: bold;
-    }
-    .remove-speed:hover {
-      color: #f00;
-    }
-    .add-speed {
-      margin-top: 10px;
-    }
-    button {
-      padding: 5px 10px;
-      background: #4285f4;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #3367d6;
-    }
-    input {
-      padding: 5px;
-      width: 60px;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Speed Controller · Settings</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="popup.js" defer></script>
 </head>
 <body>
-  <h1>Video Speed Controller Settings</h1>
-  
-  <div>
-    <p>Customize playback speeds:</p>
-    <div id="speeds-container" class="speeds-container">
-      <!-- Speed chips will be added here -->
-    </div>
-    
-    <div class="add-speed">
-      <input type="number" id="new-speed" min="0.1" max="16" step="0.1" placeholder="Speed">
-      <button id="add-button">Add Speed</button>
-    </div>
-    
-    <div style="margin-top: 15px">
-      <button id="save-button">Save Settings</button>
-      <button id="reset-button">Reset to Default</button>
-    </div>
-  </div>
+  <div class="settings-shell">
+    <header class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m5 6 8 6-8 6V6Zm9 0 8 6-8 6V6Z"/></svg>
+      </span>
+      <span>Video Speed Controller</span>
+      <span class="brand-label">MAKE IT YOURS</span>
+    </header>
 
-  <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
-    <p>Keyboard shortcuts:</p>
-    <div style="margin-bottom: 10px;">
-      <label>Decrease speed: </label>
-      <input type="text" id="decrease-key" style="width: 80px;" readonly>
-      <button id="set-decrease-key" style="font-size: 12px; padding: 3px 8px;">Set Key</button>
-    </div>
-    <div style="margin-bottom: 10px;">
-      <label>Increase speed: </label>
-      <input type="text" id="increase-key" style="width: 80px;" readonly>
-      <button id="set-increase-key" style="font-size: 12px; padding: 3px 8px;">Set Key</button>
-    </div>
-  </div>
+    <main>
+      <div class="page-heading">
+        <h1>Settings</h1>
+        <p>Your videos. Your pace.</p>
+      </div>
 
-  <script src="popup.js"></script>
+      <section class="settings-card" aria-labelledby="speeds-heading">
+        <div class="section-heading">
+          <h2 id="speeds-heading">Playback speeds</h2>
+          <span id="speed-count" class="count-badge">10 presets</span>
+        </div>
+        <p class="section-description">Choose the speeds shown in your video player.</p>
+        <ul id="speeds-container" class="speeds-container" aria-label="Playback speed presets"></ul>
+
+        <form id="add-speed-form" class="add-speed" novalidate>
+          <div class="speed-input-wrap">
+            <label class="sr-only" for="new-speed">Custom playback speed</label>
+            <input type="number" id="new-speed" min="0.1" max="16" step="any" placeholder="Custom speed" inputmode="decimal" aria-describedby="speed-hint speed-error" autocomplete="off">
+            <span class="input-unit" aria-hidden="true">×</span>
+          </div>
+          <button id="add-button" class="button button-secondary" type="submit">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+            Add speed
+          </button>
+        </form>
+        <p id="speed-hint" class="field-hint">From 0.1× to 16×. Presets are sorted automatically.</p>
+        <p id="speed-error" class="field-error" role="alert" hidden></p>
+      </section>
+
+      <section class="settings-card shortcut-card" aria-labelledby="shortcuts-heading">
+        <div class="section-heading">
+          <h2 id="shortcuts-heading">Keyboard shortcuts</h2>
+          <svg class="section-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 10h.01M11 10h.01M15 10h.01M18 10h.01M7 14h.01M11 14h7"/></svg>
+        </div>
+        <p class="section-description" id="shortcut-hint">Click a key to change it. Press Esc to cancel.</p>
+
+        <div class="shortcut-row">
+          <span class="shortcut-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m11.5 5-5 5 5 5M6.5 10H16"/></svg></span>
+          <label id="decrease-label" for="set-decrease-key">Decrease speed</label>
+          <button id="set-decrease-key" class="key-button" type="button" aria-labelledby="decrease-label decrease-key" aria-describedby="shortcut-hint" aria-pressed="false">
+            <kbd id="decrease-key">F7</kbd>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3 3 3M3 13l3-.6L13 5.4a1.7 1.7 0 0 0-2.4-2.4L3.6 10 3 13Z"/></svg>
+          </button>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="m8.5 5 5 5-5 5M4 10h9.5"/></svg></span>
+          <label id="increase-label" for="set-increase-key">Increase speed</label>
+          <button id="set-increase-key" class="key-button" type="button" aria-labelledby="increase-label increase-key" aria-describedby="shortcut-hint" aria-pressed="false">
+            <kbd id="increase-key">F9</kbd>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3 3 3M3 13l3-.6L13 5.4a1.7 1.7 0 0 0-2.4-2.4L3.6 10 3 13Z"/></svg>
+          </button>
+        </div>
+        <p id="shortcut-error" class="field-error" role="alert" hidden></p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-actions">
+        <button id="reset-button" class="reset-button" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7a6 6 0 1 1-.2 5M4 3v4h4"/></svg>
+          Reset to defaults
+        </button>
+        <button id="save-button" class="button button-primary" type="button" disabled>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3.5 3.5L15 7"/></svg>
+          <span id="save-label">Save changes</span>
+        </button>
+      </div>
+      <p id="save-status" class="save-status" role="status" aria-live="polite">Loading settings…</p>
+    </footer>
+  </div>
 </body>
 </html>
