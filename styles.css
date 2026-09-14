@@ -28,3 +28,9 @@
 .speed-button:active {
     opacity: 0.5;
 }
+
+.speed-button.active {
+    background: rgba(255, 0, 0, 0.7);
+    border: 2px solid #fff;
+    font-weight: bold;
+}
