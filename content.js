@@ -22,6 +22,7 @@
       this._container = container;
       this._speeds = DEFAULT_SPEEDS;
       this._videoSelector = "video";
+      this._currentSpeed = 1;
     }
 
     connectedCallback() {
@@ -42,6 +43,66 @@
       }
     }
 
+    setSpeed(speed) {
+      console.log(`[SpeedControls] Setting speed to: ${speed}`);
+      const video =
+        document.querySelector(this._videoSelector) ||
+        document.querySelector("video");
+      if (video) {
+        console.log(`[SpeedControls] Video found, current rate: ${video.playbackRate}`);
+        video.playbackRate = speed;
+        this._currentSpeed = speed;
+        this.updateActiveButton();
+        console.log(`[SpeedControls] Speed set successfully to: ${speed}`);
+      } else {
+        console.error("[SpeedControls] Video element not found");
+      }
+    }
+
+    updateActiveButton() {
+      const buttons = this._container.querySelectorAll(".speed-button");
+      buttons.forEach((btn) => {
+        const btnSpeed = parseFloat(btn.textContent);
+        if (Math.abs(btnSpeed - this._currentSpeed) < 0.01) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+    }
+
+    getCurrentSpeedIndex() {
+      const sortedSpeeds = [...this._speeds].sort((a, b) => a - b);
+      let closestIndex = 0;
+      let minDiff = Math.abs(sortedSpeeds[0] - this._currentSpeed);
+      
+      for (let i = 1; i < sortedSpeeds.length; i++) {
+        const diff = Math.abs(sortedSpeeds[i] - this._currentSpeed);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIndex = i;
+        }
+      }
+      
+      return closestIndex;
+    }
+
+    increaseSpeed() {
+      const sortedSpeeds = [...this._speeds].sort((a, b) => a - b);
+      const currentIndex = this.getCurrentSpeedIndex();
+      const nextIndex = Math.min(currentIndex + 1, sortedSpeeds.length - 1);
+      console.log(`[SpeedControls] Increase speed: current=${this._currentSpeed}, currentIndex=${currentIndex}, nextIndex=${nextIndex}, nextSpeed=${sortedSpeeds[nextIndex]}`);
+      this.setSpeed(sortedSpeeds[nextIndex]);
+    }
+
+    decreaseSpeed() {
+      const sortedSpeeds = [...this._speeds].sort((a, b) => a - b);
+      const currentIndex = this.getCurrentSpeedIndex();
+      const prevIndex = Math.max(currentIndex - 1, 0);
+      console.log(`[SpeedControls] Decrease speed: current=${this._currentSpeed}, currentIndex=${currentIndex}, prevIndex=${prevIndex}, prevSpeed=${sortedSpeeds[prevIndex]}`);
+      this.setSpeed(sortedSpeeds[prevIndex]);
+    }
+
     renderButtons() {
       this._container.innerHTML = "";
 
@@ -50,15 +111,12 @@
         btn.className = "speed-button";
         btn.textContent = `${speed}x`;
         btn.onclick = () => {
-          const video =
-            document.querySelector(this._videoSelector) ||
-            document.querySelector("video");
-          if (video) {
-            video.playbackRate = speed;
-          }
+          this.setSpeed(speed);
         };
         this._container.appendChild(btn);
       }
+      
+      this.updateActiveButton();
     }
   }
 
@@ -103,6 +161,19 @@
         });
       });
     }
+
+    static async getKeyboardShortcuts() {
+      return new Promise((resolve) => {
+        chrome.storage.sync.get(["decreaseKey", "increaseKey"], (result) => {
+          const shortcuts = {
+            decreaseKey: result.decreaseKey || "F7",
+            increaseKey: result.increaseKey || "F9"
+          };
+          console.log("[StorageManager] Loaded keyboard shortcuts:", shortcuts);
+          resolve(shortcuts);
+        });
+      });
+    }
   }
 
   class PlatformDetector {
@@ -136,38 +207,104 @@
       this.onMouseOver = null;
       this.onMouseOut = null;
       this.onMouseMove = null;
+      this.onKeyDown = null;
       this.controls = null;
+      this.speedControls = null;
       this.mutationObserver = null;
       this.hideTimer = null;
+      this.decreaseKey = "F7";
+      this.increaseKey = "F9";
     }
 
     async initialize() {
       try {
+        console.log("[SpeedControlsManager] Initializing...");
         window.customElements.define("speed-controls", SpeedControls);
 
         const speeds = await StorageManager.getStoredSpeeds();
+        console.log("[SpeedControlsManager] Loaded speeds:", speeds);
+        
+        const shortcuts = await StorageManager.getKeyboardShortcuts();
+        this.decreaseKey = shortcuts.decreaseKey;
+        this.increaseKey = shortcuts.increaseKey;
+        console.log("[SpeedControlsManager] Keyboard shortcuts set:", {
+          decreaseKey: this.decreaseKey,
+          increaseKey: this.increaseKey
+        });
+
         const platform = this.platformDetector.detectPlatform();
 
         if (platform) {
-          console.info(`Platform detected ${platform?.name}`);
+          console.info(`[SpeedControlsManager] Platform detected: ${platform?.name}`);
           this.attachSpeedControls(platform, speeds);
+          this.setupKeyboardShortcuts();
         } else {
-          console.log("No supported platform detected");
+          console.log("[SpeedControlsManager] No supported platform detected");
         }
       } catch (error) {
-        console.error("Failed to initialize speed controls:", error);
+        console.error("[SpeedControlsManager] Failed to initialize speed controls:", error);
       }
+    }
+
+    setupKeyboardShortcuts() {
+      console.log("[SpeedControlsManager] Setting up keyboard shortcuts");
+      console.log(`[SpeedControlsManager] Decrease key: "${this.decreaseKey}", Increase key: "${this.increaseKey}"`);
+      
+      this.onKeyDown = (e) => {
+        console.log(`[SpeedControlsManager] Key pressed: "${e.key}", code: "${e.code}"`);
+        
+        if (this.speedControls) {
+          if (e.key === this.decreaseKey) {
+            console.log("[SpeedControlsManager] Decrease key matched! Calling decreaseSpeed()");
+            e.preventDefault();
+            this.speedControls.decreaseSpeed();
+          } else if (e.key === this.increaseKey) {
+            console.log("[SpeedControlsManager] Increase key matched! Calling increaseSpeed()");
+            e.preventDefault();
+            this.speedControls.increaseSpeed();
+          } else {
+            console.log(`[SpeedControlsManager] No match. Expected decrease: "${this.decreaseKey}" or increase: "${this.increaseKey}"`);
+          }
+        } else {
+          console.error("[SpeedControlsManager] speedControls is null!");
+        }
+      };
+
+      document.addEventListener("keydown", this.onKeyDown);
+      console.log("[SpeedControlsManager] Keyboard event listener added");
     }
 
     attachSpeedControls(platform, speeds) {
       const { containerSelector, videoSelector, name } = platform;
+      console.log(`[SpeedControlsManager] Attaching speed controls for platform: ${name}`);
+      console.log(`[SpeedControlsManager] Container selector: ${containerSelector}, Video selector: ${videoSelector}`);
       
       DOMObserver.waitForElement(containerSelector, (controls) => {
+        console.log("[SpeedControlsManager] Container element found, creating speed controls");
+        
         const speedControls = document.createElement("speed-controls");
         speedControls.speeds = speeds;
         speedControls.videoSelector = videoSelector;
 
         DOMHelper.insertAfter(controls, speedControls);
+
+        this.speedControls = speedControls;
+        console.log("[SpeedControlsManager] Speed controls element created and assigned");
+
+        const video = document.querySelector(videoSelector) || document.querySelector("video");
+        if (video) {
+          console.log(`[SpeedControlsManager] Video found, current playbackRate: ${video.playbackRate}`);
+          speedControls._currentSpeed = video.playbackRate;
+          speedControls.updateActiveButton();
+
+          video.addEventListener("ratechange", () => {
+            console.log(`[SpeedControlsManager] Video rate changed to: ${video.playbackRate}`);
+            speedControls._currentSpeed = video.playbackRate;
+            speedControls.updateActiveButton();
+          });
+        } else {
+          console.warn("[SpeedControlsManager] Video element not found");
+        }
 
         let isOverVideo = false;
         const updateVisibility = () => {
@@ -234,6 +371,10 @@
         this.onMouseOut = null;
         this.onMouseMove = null;
         console.log("Listeners removed");
+      }
+      if (this.onKeyDown) {
+        document.removeEventListener("keydown", this.onKeyDown);
+        this.onKeyDown = null;
       }
       if (this.hideTimer) {
         clearTimeout(this.hideTimer);
